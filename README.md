@@ -208,35 +208,37 @@ rather than selling a level the caller has no way to identify as out of date.
 
 ## Deploying
 
-`railway.json` ships the service config; deploy from the repo root, because the API
-workspace resolves `@indexfeed-algorand/engine` through the root `node_modules`.
-
 ```bash
-railway up
-railway variables --set ALGORAND_NETWORK=mainnet \
-  --set X402_PAY_TO=<address> \
-  --set PUBLIC_BASE_URL=https://<service>.up.railway.app \
-  --set ATTEST_PRIVATE_KEY=<base64 from npm run attest-key>
+KOYEB_TOKEN=… scripts/deploy-koyeb.sh
 ```
 
-Three parts of that config are load-bearing:
+Koyeb, buildpack, one always-on free instance. The script reads `.env` rather than
+taking its own arguments — a deploy configured by hand drifts from the one it was
+tested against — and pushes `ATTEST_PRIVATE_KEY` as a platform secret rather than a
+plain variable.
 
-**`PUBLIC_BASE_URL` is not optional in production.** Without it the middleware
-derives the resource URL from the request, which behind Railway's proxy is the
-internal host — so the Bazaar catalog lists an address no caller can reach while
-payments settle perfectly well.
+Four things in it are load-bearing:
 
-**The healthcheck points at `/`, not `/health`.** `/health` returns 503 when the
-price snapshot goes stale, which is correct for a caller deciding whether to spend
-and wrong for a liveness probe: an upstream feed having a bad ten minutes would
-otherwise put the container into a restart loop and take down the routes that were
-still fine. `/` answers "is the process up", which is what the platform is asking.
+**It deploys twice.** The public domain is only assigned once the app exists, and
+`PUBLIC_BASE_URL` has to carry it. Without that, the middleware derives the resource
+URL from the request, which behind the platform router is an internal host — payments
+settle perfectly well while the Bazaar catalog advertises a URL no agent can reach.
+So: create, read the domain back, redeploy with it set.
 
-**One replica.** Epochs are published by running the rebalancer locally and
+**The healthcheck points at `/`, not `/health`.** `/health` returns 503 on a stale
+price snapshot, which is correct for a caller deciding whether to spend and wrong for
+a liveness probe: a bad ten minutes upstream would otherwise restart the container in
+a loop and take down the routes that were still fine.
+
+**Deep sleep is disabled.** A cold start refetches four price feeds, so a sleeping
+service answers its first request with a freshness 503 — the one failure mode this
+API is built to avoid.
+
+**One instance.** Epochs are published by running the rebalancer locally and
 committing `state/`, so replicas would be read-only and identical — but nothing in
 the epoch store enforces a single writer, and the divisor that makes epoch N+1
-continuous with epoch N lives in that same directory. Scaling out is a schema
-change, not a slider.
+continuous with epoch N lives in that same directory. Scaling out is a schema change,
+not a slider.
 
 ## Layout
 
@@ -245,7 +247,8 @@ packages/engine   chain-free: price reconciliation, screening, index math,
                   epoch store, attestation. Knows nothing about Algorand or HTTP.
 packages/api      x402-metered express surface, Bazaar declarations, freshness gate
 packages/client    paying fetch + the reference consumer / poller
-scripts           account generation, USDC opt-in, readiness and facilitator probes
+scripts           account generation, USDC opt-in, readiness and facilitator
+                  probes, and the two-pass Koyeb deploy
 state             published epochs + continuity divisor (tracked in git on purpose:
                   there is no contract holding the divisor on this rail)
 ```
