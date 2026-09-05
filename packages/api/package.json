@@ -1,0 +1,22 @@
+{
+  "name": "@indexfeed-algorand/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "x402-metered HTTP surface over the IndexFeed index engine, on Algorand",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "test": "node --test \"test/*.test.js\""
+  },
+  "dependencies": {
+    "@indexfeed-algorand/engine": "0.1.0",
+    "@x402/avm": "2.24.0",
+    "@x402/core": "2.24.0",
+    "@x402/express": "2.24.0",
+    "@x402/extensions": "2.24.0",
+    "dotenv": "17.4.2",
+    "express": "5.2.1"
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "name": "indexfeed-algorand",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Pay-per-request crypto market and index data API for AI agents, metered with x402 on Algorand",
+  "workspaces": [
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "npm run test --workspaces --if-present",
+    "start": "npm start --workspace @indexfeed-algorand/api",
+    "dev": "npm run dev --workspace @indexfeed-algorand/api",
+    "account:new": "node scripts/new-account.js",
+    "account:optin": "node scripts/optin-usdc.js",
+    "account:check": "node scripts/check-account.js",
+    "probe": "node scripts/probe-facilitator.js",
+    "pay": "node packages/client/src/cli.js",
+    "poll": "node packages/client/src/poller.js"
+  }
+}

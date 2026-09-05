@@ -1,0 +1,22 @@
+{
+  "name": "@indexfeed-algorand/engine",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Chain-free price reconciliation, universe discovery, and index math",
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./env": "./src/env.js"
+  },
+  "scripts": {
+    "test": "node --test \"test/*.test.js\"",
+    "rebalance": "node src/cli.js rebalance",
+    "dry-run": "node src/cli.js rebalance --dry-run",
+    "status": "node src/cli.js status",
+    "attest-key": "node src/cli.js attest-key"
+  },
+  "dependencies": {
+    "dotenv": "17.4.2"
+  }
+}

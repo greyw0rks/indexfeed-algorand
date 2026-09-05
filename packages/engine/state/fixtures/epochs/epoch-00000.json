@@ -1,0 +1,98 @@
+{
+  "index": "IFX20",
+  "epoch": 0,
+  "publishedAt": "2026-09-05T15:48:50.114Z",
+  "value": "10000000000",
+  "level": "1000.0000000",
+  "methodologyVersion": "1.1.0",
+  "methodologyHash": "65a4bcc8943d031912939bf88aa46a323e9c8c3427c6811ce65e415d8162b901",
+  "constituents": [
+    {
+      "symbol": "BTC",
+      "weight_bps": 2499
+    },
+    {
+      "symbol": "ETH",
+      "weight_bps": 2500
+    },
+    {
+      "symbol": "BNB",
+      "weight_bps": 1307
+    },
+    {
+      "symbol": "XRP",
+      "weight_bps": 1221
+    },
+    {
+      "symbol": "SOL",
+      "weight_bps": 862
+    },
+    {
+      "symbol": "TRX",
+      "weight_bps": 445
+    },
+    {
+      "symbol": "ZEC",
+      "weight_bps": 187
+    },
+    {
+      "symbol": "DOGE",
+      "weight_bps": 172
+    },
+    {
+      "symbol": "XMR",
+      "weight_bps": 129
+    },
+    {
+      "symbol": "LINK",
+      "weight_bps": 121
+    },
+    {
+      "symbol": "ADA",
+      "weight_bps": 106
+    },
+    {
+      "symbol": "XLM",
+      "weight_bps": 88
+    },
+    {
+      "symbol": "BCH",
+      "weight_bps": 70
+    },
+    {
+      "symbol": "LTC",
+      "weight_bps": 53
+    },
+    {
+      "symbol": "HBAR",
+      "weight_bps": 46
+    },
+    {
+      "symbol": "UNI",
+      "weight_bps": 46
+    },
+    {
+      "symbol": "AVAX",
+      "weight_bps": 45
+    },
+    {
+      "symbol": "SUI",
+      "weight_bps": 42
+    },
+    {
+      "symbol": "NEAR",
+      "weight_bps": 34
+    },
+    {
+      "symbol": "AAVE",
+      "weight_bps": 27
+    }
+  ],
+  "universeSize": 27,
+  "candidatesScreened": 27,
+  "excludedCount": 7,
+  "attestation": {
+    "alg": "sha256",
+    "digest": "9da84c20d39f93142d048a0f6d36a6c5e3b18b9af1905d117e3066a596963a7f"
+  }
+}

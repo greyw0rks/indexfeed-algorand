@@ -1,0 +1,18 @@
+node_modules/
+.env
+.env.local
+*.log
+
+# Published epochs and continuity state.
+#
+# state/ is tracked deliberately, with two exceptions below. The divisor that makes
+# epoch N+1 continuous with epoch N lives only in state.json — there is no contract
+# holding it here — so losing it means the next rebalance cannot reproduce a
+# continuous level. Committing it is what makes the history reproducible.
+state/fixtures/
+state/consumer/
+
+# Attestation keys must never be committed. The public key is fine; the private
+# key signs epoch digests.
+*.pem
+attest-*.key
