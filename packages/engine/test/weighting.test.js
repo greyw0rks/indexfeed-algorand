@@ -105,10 +105,10 @@ test("basis points always sum to exactly 10000", () => {
     { symbol: "B", weight: 1 / 3 },
     { symbol: "C", weight: 1 / 3 },
   ]);
-  assert.equal(bps.reduce((s, b) => s + b.weight_bps, 0), TOTAL_WEIGHT_BPS);
+  assert.equal(bps.reduce((s, b) => s + b.weightBps, 0), TOTAL_WEIGHT_BPS);
 });
 
 test("basis points sum for a realistic capped vector", () => {
   const w = weight([asset("A", 800e9), asset("B", 100e9), asset("C", 60e9), asset("D", 40e9), asset("E", 7e9)]);
-  assert.equal(toBasisPoints(w).reduce((s, b) => s + b.weight_bps, 0), TOTAL_WEIGHT_BPS);
+  assert.equal(toBasisPoints(w).reduce((s, b) => s + b.weightBps, 0), TOTAL_WEIGHT_BPS);
 });

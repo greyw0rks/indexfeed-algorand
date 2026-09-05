@@ -42,7 +42,7 @@ test("inception epoch is 0 and starts at the base level", async () => {
   assert.equal(update.epoch, 0);
   assert.equal(fromScaledValue(update.value).split(".")[0], String(METHODOLOGY.baseLevel));
   assert.equal(update.methodologyHash, methodologyHash());
-  assert.equal(update.constituents.reduce((s, c) => s + c.weight_bps, 0), TOTAL_WEIGHT_BPS);
+  assert.equal(update.constituents.reduce((s, c) => s + c.weightBps, 0), TOTAL_WEIGHT_BPS);
   assert.equal(state.epoch, 0);
   assert.equal(audit.previousLevel, null);
 });
@@ -50,7 +50,7 @@ test("inception epoch is 0 and starts at the base level", async () => {
 test("weights respect the concentration cap", async () => {
   const { update } = await runRebalance({ sources: sourcesAt(PRICES), universe });
   for (const c of update.constituents) {
-    assert.ok(c.weight_bps <= METHODOLOGY.concentrationCapBps, `${c.symbol} at ${c.weight_bps}bps`);
+    assert.ok(c.weightBps <= METHODOLOGY.concentrationCapBps, `${c.symbol} at ${c.weightBps}bps`);
   }
 });
 
@@ -86,7 +86,7 @@ test("an asset without consensus prices is dropped from the epoch", async () => 
   const { update, audit } = await runRebalance({ sources, universe });
   assert.ok(!update.constituents.some((c) => c.symbol === "E"));
   assert.ok(audit.priceRejections.some((r) => r.symbol === "E"));
-  assert.equal(update.constituents.reduce((s, c) => s + c.weight_bps, 0), TOTAL_WEIGHT_BPS);
+  assert.equal(update.constituents.reduce((s, c) => s + c.weightBps, 0), TOTAL_WEIGHT_BPS);
 });
 
 test("a failing source is recorded but does not fail the rebalance", async () => {

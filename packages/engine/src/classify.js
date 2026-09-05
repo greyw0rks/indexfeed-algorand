@@ -13,9 +13,15 @@
  *
  *   1. Realized volatility, for stablecoins. Verified 2026-08-31: every known
  *      stablecoin moved ≤0.10% over both 24h and 7d, while the least volatile
- *      non-stable moved 0.79%. The gap is wide enough to be robust, and it is
- *      peg-agnostic — it correctly catches yield-bearing stables trading at 1.25
- *      (sUSDe) or 1.11 (sUSDS) that a "price near $1" test would miss.
+ *      non-stable moved 0.79%. The gap is peg-agnostic, which is the point — it
+ *      correctly catches yield-bearing stables trading at 1.25 (sUSDe) or 1.11
+ *      (sUSDS) that a "price near $1" test would miss.
+ *
+ *      Two short windows are not enough on their own. That 0.79% margin was one
+ *      day's reading, and on 2026-09-05 ETH came in under 0.5% on both windows
+ *      and was classified as a stablecoin — a top-20 crypto index with no ETH.
+ *      A 30-day window vetoes that: the same day, stables sat at 0.1% while ETH
+ *      had moved 28.5%.
  *
  *   2. Naming patterns, for wrapped and staked derivatives. These track their
  *      underlying's volatility exactly, so signal 1 cannot see them. Patterns are
@@ -28,6 +34,14 @@
 
 /** Max |% change| over 24h and 7d for an asset to count as a stablecoin. */
 export const STABLE_MAX_CHANGE_PCT = 0.5;
+
+/**
+ * Max |% change| over 30d before the stablecoin verdict is vetoed.
+ *
+ * See methodology.js for the measurements. Short windows cannot distinguish a
+ * peg from a quiet week; a month can.
+ */
+export const STABLE_MAX_CHANGE_30D_PCT = 2.0;
 
 /**
  * Name fragments that mark a derivative. Matched against the asset's full name,
@@ -70,13 +84,30 @@ export const ExclusionReason = {
 /**
  * Is this asset price-stable enough to be a stablecoin?
  *
- * Requires *both* windows to be quiet. A single quiet 24h window is common for
- * any large asset on a flat day, so 24h alone would exclude real constituents.
+ * Both short windows must be quiet, and the 30-day window must not contradict
+ * them. Requiring both 24h and 7d was already necessary — a single quiet 24h
+ * window is common for any large asset on a flat day — but it was not sufficient:
+ * a genuinely flat week reads identically to a peg. The 30d veto is what separates
+ * them, because an asset that is flat for a week has almost always moved over a
+ * month, while a peg has not moved over either.
+ *
+ * `change30dPct` is only populated by providers that report it, so a null leaves
+ * the old two-window verdict standing rather than admitting an unclassifiable
+ * asset. That fallback applies to the tail of the universe, where the cost of a
+ * wrong call is one slot; the names that would actually be missed are all covered.
  */
-export function looksLikeStablecoin(asset, maxChangePct = STABLE_MAX_CHANGE_PCT) {
-  const { change24hPct, change7dPct } = asset;
+export function looksLikeStablecoin(
+  asset,
+  maxChangePct = STABLE_MAX_CHANGE_PCT,
+  maxChange30dPct = STABLE_MAX_CHANGE_30D_PCT,
+) {
+  const { change24hPct, change7dPct, change30dPct } = asset;
   if (change24hPct === null || change7dPct === null) return false;
-  return Math.abs(change24hPct) <= maxChangePct && Math.abs(change7dPct) <= maxChangePct;
+  if (Math.abs(change24hPct) > maxChangePct || Math.abs(change7dPct) > maxChangePct) return false;
+  if (change30dPct !== null && change30dPct !== undefined && Math.abs(change30dPct) > maxChange30dPct) {
+    return false;
+  }
+  return true;
 }
 
 export function looksLikeDerivative(asset) {
@@ -88,10 +119,13 @@ export function looksLikeDerivative(asset) {
  * Classify one asset. Returns null when it is a legitimate index candidate,
  * otherwise the reason it is not.
  */
-export function classifyExclusion(asset, { maxChangePct = STABLE_MAX_CHANGE_PCT } = {}) {
+export function classifyExclusion(
+  asset,
+  { maxChangePct = STABLE_MAX_CHANGE_PCT, maxChange30dPct = STABLE_MAX_CHANGE_30D_PCT } = {},
+) {
   if (COMMODITY_SYMBOLS.has(asset.symbol)) return ExclusionReason.COMMODITY;
   if (looksLikeDerivative(asset)) return ExclusionReason.DERIVATIVE;
-  if (looksLikeStablecoin(asset, maxChangePct)) return ExclusionReason.STABLECOIN;
+  if (looksLikeStablecoin(asset, maxChangePct, maxChange30dPct)) return ExclusionReason.STABLECOIN;
 
   // Without change data the stablecoin test cannot run. Excluding is the safe
   // direction: admitting a stablecoin corrupts the index, while excluding one

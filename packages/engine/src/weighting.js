@@ -28,7 +28,10 @@ export function screen(universe, methodology = METHODOLOGY) {
     let detail;
 
     if (rules.excludeNonConstituents) {
-      reason = classifyExclusion(asset, { maxChangePct: rules.stableMaxChangePct });
+      reason = classifyExclusion(asset, {
+        maxChangePct: rules.stableMaxChangePct,
+        maxChange30dPct: rules.stableMaxChange30dPct,
+      });
     }
 
     if (!reason && (asset.sources?.length ?? 1) < minProviders) {
@@ -126,17 +129,25 @@ export function weight(assets, methodology = METHODOLOGY) {
 /**
  * Convert fractional weights to basis points that sum to exactly 10_000.
  *
- * The contract rejects any update whose weights do not sum to 10_000, so the
- * rounding residual is assigned to the largest name — the one where a 1bp
- * adjustment is least material.
+ * The rounding residual is assigned to the largest name — the one where a 1bp
+ * adjustment is least material. The invariant is inherited from the Soroban
+ * edition, whose contract rejects an update that does not sum to 10_000; it is
+ * kept here because a weight vector that does not sum to one is wrong on any rail.
+ *
+ * `weightBps`, not `weight_bps`. The snake_case spelling came from the Soroban
+ * struct encoding, where field names are symbols the contract reads, and on this
+ * rail the epoch record is served straight to HTTP callers instead. Leaving it
+ * meant `/v1/index/latest` published `weight_bps` while the Bazaar schema for the
+ * same route advertised `weightBps` — and the caller discovers the difference
+ * after paying.
  */
 export function toBasisPoints(weights) {
   if (weights.length === 0) return [];
-  const bps = weights.map((w) => ({ symbol: w.symbol, weight_bps: Math.round(w.weight * TOTAL_WEIGHT_BPS) }));
-  const residual = TOTAL_WEIGHT_BPS - bps.reduce((s, b) => s + b.weight_bps, 0);
+  const bps = weights.map((w) => ({ symbol: w.symbol, weightBps: Math.round(w.weight * TOTAL_WEIGHT_BPS) }));
+  const residual = TOTAL_WEIGHT_BPS - bps.reduce((s, b) => s + b.weightBps, 0);
   if (residual !== 0) {
-    const largest = bps.reduce((a, b) => (b.weight_bps > a.weight_bps ? b : a));
-    largest.weight_bps += residual;
+    const largest = bps.reduce((a, b) => (b.weightBps > a.weightBps ? b : a));
+    largest.weightBps += residual;
   }
   return bps;
 }

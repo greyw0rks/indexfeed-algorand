@@ -20,7 +20,7 @@ export const VALUE_SCALE = 10n ** BigInt(VALUE_DECIMALS);
  * whole object, forgetting to bump is still detectable — the hash moves anyway.
  */
 export const METHODOLOGY = {
-  version: "1.1.0",
+  version: "1.2.0",
   /** Target constituent count for the flagship index. */
   targetSize: 20,
   /** No single name may exceed this share, applied iteratively. */
@@ -58,6 +58,22 @@ export const METHODOLOGY = {
     excludeNonConstituents: true,
     /** Max |% change| over both 24h and 7d for an asset to count as stable. */
     stableMaxChangePct: 0.5,
+    /**
+     * Max |% change| over 30d for an asset to still count as stable.
+     *
+     * A veto, not a third AND-condition: exceed this and the asset is *not* a
+     * stablecoin however quiet its 24h and 7d windows were. Two short windows
+     * cannot tell a peg from a flat week, and on 2026-09-05 they did not — ETH
+     * printed +0.42% over 24h and +0.40% over 7d and was classified as a
+     * stablecoin, which would have shipped a top-20 crypto index with no ETH in
+     * it. Over 30d the same day separates cleanly: USDT and USDC at 0.1%, ETH at
+     * 28.5%, BTC at 23.3%, and the quietest real asset in the universe (TRX) at
+     * 2.1%.
+     *
+     * Set at 2.0 rather than tighter so that yield-bearing stables, which drift
+     * upward by design, stay caught: 2%/30d is roughly 26%/yr of accrual.
+     */
+    stableMaxChange30dPct: 2.0,
   },
   /** Rebalance cadence in days. Epoch N is published every `cadenceDays`. */
   cadenceDays: 7,

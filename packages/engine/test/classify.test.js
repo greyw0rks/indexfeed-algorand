@@ -64,3 +64,39 @@ test("the stable band is configurable", () => {
   assert.equal(classifyExclusion(drifting), null);
   assert.equal(classifyExclusion(drifting, { maxChangePct: 1 }), ExclusionReason.STABLECOIN);
 });
+
+test("a month of movement vetoes a quiet week", () => {
+  // The real reading that produced this test: on 2026-09-05 ETH was +0.42% over
+  // 24h and +0.40% over 7d, which convicts on the short windows alone, and
+  // +28.5% over 30d, which cannot be a peg. Shipping the short-window verdict
+  // would have published a top-20 crypto index with no ETH in it.
+  const flatWeek = { symbol: "ETH", name: "Ethereum", change24hPct: 0.42, change7dPct: 0.4 };
+  assert.equal(classifyExclusion(flatWeek), ExclusionReason.STABLECOIN, "short windows alone convict");
+  assert.equal(classifyExclusion({ ...flatWeek, change30dPct: 28.5 }), null);
+});
+
+test("a real stablecoin is still caught once 30d is available", () => {
+  // Separation on the same day: USDT and USDC moved 0.1% over 30d against ETH's
+  // 28.5%, so the veto has ~200x of headroom rather than the 1.6x the 7d window
+  // was relying on.
+  const usdt = candidate({ symbol: "USDT", name: "Tether", change24hPct: 0.008, change7dPct: 0.0, change30dPct: 0.1 });
+  assert.equal(classifyExclusion(usdt), ExclusionReason.STABLECOIN);
+});
+
+test("a yield-bearing stable's accrual does not trip the veto", () => {
+  // ~2%/30d is roughly 26%/yr, which is the outer edge of real stablecoin yield.
+  // Set the veto tighter than this and sUSDe-style assets escape classification.
+  const accruing = candidate({ symbol: "YBS", change24hPct: 0.06, change7dPct: 0.4, change30dPct: 1.9 });
+  assert.equal(classifyExclusion(accruing), ExclusionReason.STABLECOIN);
+  assert.equal(classifyExclusion({ ...accruing, change30dPct: 2.1 }), null);
+});
+
+test("an absent 30d reading leaves the two-window verdict standing", () => {
+  // Providers past CoinGecko's first page report no 30d window. Treating that as
+  // exculpatory would admit every tail stablecoin; treating it as unclassifiable
+  // would empty the tail. It falls back to the older, weaker test on purpose.
+  const quiet = candidate({ change24hPct: 0.02, change7dPct: -0.03 });
+  assert.equal(classifyExclusion(quiet), ExclusionReason.STABLECOIN);
+  assert.equal(classifyExclusion({ ...quiet, change30dPct: null }), ExclusionReason.STABLECOIN);
+  assert.ok(looksLikeStablecoin({ ...quiet, change30dPct: undefined }));
+});

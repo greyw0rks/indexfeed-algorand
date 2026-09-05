@@ -32,10 +32,12 @@ function daysSince(isoDate) {
 /**
  * CoinGecko `/coins/markets`. Ranked by market cap, one request per page.
  *
- * `price_change_percentage=24h,7d` is requested explicitly. Without it the
- * response carries only the 24h window, and the stablecoin test needs both — an
- * asset with a null 7d change is excluded as unclassifiable, so omitting the
- * parameter silently drops every CoinGecko-only asset from the universe.
+ * `price_change_percentage=24h,7d,30d` is requested explicitly. Without it the
+ * response carries only the 24h window, and the stablecoin test needs at least
+ * two — an asset with a null 7d change is excluded as unclassifiable, so omitting
+ * the parameter silently drops every CoinGecko-only asset from the universe. The
+ * 30d window costs nothing extra on the same request and is the only field that
+ * reliably separates a peg from a flat week; see classify.js.
  *
  * Carries no listing date, so `listingAgeDays` is null here and comes from
  * CoinPaprika's `first_data_at` instead.
@@ -49,7 +51,7 @@ export function coingeckoFundamentals({ pages = 1, perPage = 100 } = {}) {
         const batch = await fetchJson(
           "https://api.coingecko.com/api/v3/coins/markets" +
             `?vs_currency=usd&order=market_cap_desc&per_page=${perPage}&page=${page}` +
-            "&price_change_percentage=24h,7d",
+            "&price_change_percentage=24h,7d,30d",
         );
         if (!Array.isArray(batch)) throw new Error("coingecko returned a non-array (rate limited?)");
         rows.push(...batch);
@@ -66,6 +68,7 @@ export function coingeckoFundamentals({ pages = 1, perPage = 100 } = {}) {
           priceUsd: c.current_price,
           change24hPct: c.price_change_percentage_24h_in_currency ?? c.price_change_percentage_24h ?? null,
           change7dPct: c.price_change_percentage_7d_in_currency ?? null,
+          change30dPct: c.price_change_percentage_30d_in_currency ?? null,
         }));
     },
   };
@@ -74,8 +77,12 @@ export function coingeckoFundamentals({ pages = 1, perPage = 100 } = {}) {
 /**
  * CoinPaprika `/v1/tickers`. One request returns ~2000 assets with listing dates.
  *
- * `percent_change_30d` is present but returns 0 for every asset, so it is not
- * read — only the 24h and 7d windows are usable.
+ * `percent_change_30d` is deliberately **not** read: it is present on every asset
+ * and always 0 (re-checked 2026-09-05, including for BTC and ETH). Mapping it
+ * would not merely add a useless field — `collectFundamentals` medians the change
+ * columns across providers, so a hard 0 from here would drag every asset's 30d
+ * reading toward flat and hand the stablecoin classifier the entire universe.
+ * Only the 24h and 7d windows are usable from this provider.
  */
 export function coinpaprikaFundamentals({ limit = 200 } = {}) {
   return {
@@ -155,6 +162,7 @@ export async function collectFundamentals(providers) {
       priceUsd: median(rows.map((r) => r.priceUsd).filter(Number.isFinite)),
       change24hPct: pickChange(rows, "change24hPct"),
       change7dPct: pickChange(rows, "change7dPct"),
+      change30dPct: pickChange(rows, "change30dPct"),
       sources: rows.map((r) => r.provider),
       providerIds: Object.fromEntries(rows.map((r) => [r.provider, r.providerId])),
     };

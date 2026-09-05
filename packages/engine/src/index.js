@@ -58,6 +58,7 @@ export {
   looksLikeDerivative,
   ExclusionReason,
   STABLE_MAX_CHANGE_PCT,
+  STABLE_MAX_CHANGE_30D_PCT,
 } from "./classify.js";
 export { createSymbolResolver, bitstampPair, bitfinexPair } from "./symbols.js";
 export { FIXTURE_UNIVERSE } from "./fixtures.js";
