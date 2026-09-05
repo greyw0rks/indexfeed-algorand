@@ -6,7 +6,7 @@
  * signs epoch digests and cannot move funds (see engine/attest.js for why those
  * are deliberately different keys).
  */
-import { loadEnv } from "@indexfeed-algorand/engine/env";
+import { loadEnv, resolveStateDir } from "@indexfeed-algorand/engine/env";
 import {
   ALGORAND_MAINNET_GENESIS_HASH,
   ALGORAND_TESTNET_GENESIS_HASH,
@@ -79,9 +79,13 @@ export function loadApiConfig(env = process.env) {
    * sitting on disk. The engine applies this suffix in its own loadConfig; it is
    * repeated rather than imported because the two configs are otherwise separate
    * and a shared helper would couple payment config to index config.
+   *
+   * `resolveStateDir` *is* shared, because it is the same class of bug one level
+   * down: npm sets cwd to the workspace, so a relative default resolved to
+   * `packages/api/state` here and `packages/engine/state` there.
    */
   const useFixtures = env.USE_FIXTURE_PRICES === "1";
-  const baseStateDir = env.STATE_DIR ?? "./state";
+  const baseStateDir = resolveStateDir(env.STATE_DIR);
 
   const config = {
     port: Number(env.PORT ?? 3002),

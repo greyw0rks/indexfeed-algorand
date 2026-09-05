@@ -6,7 +6,7 @@
  * Payment, network, and pricing config belong to the API and live there — the
  * engine must stay unaware of Algorand and x402.
  */
-import { loadEnv } from "./env.js";
+import { loadEnv, resolveStateDir } from "./env.js";
 import {
   bitfinexSource,
   bitstampSource,
@@ -31,7 +31,7 @@ export function loadConfig(env = process.env) {
    * network access.
    */
   const useFixtures = env.USE_FIXTURE_PRICES === "1";
-  const stateDir = env.STATE_DIR ?? "./state";
+  const stateDir = resolveStateDir(env.STATE_DIR);
 
   return {
     /**
