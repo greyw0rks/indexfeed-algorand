@@ -1,0 +1,107 @@
+{
+  "epoch": 0,
+  "basket": [
+    {
+      "symbol": "BTC",
+      "units": 3.121040180271281,
+      "lastPrice": 80101.5
+    },
+    {
+      "symbol": "ETH",
+      "units": 100.81911861267258,
+      "lastPrice": 2479.688410691739
+    },
+    {
+      "symbol": "BNB",
+      "units": 167.38968574883364,
+      "lastPrice": 777.6205832710502
+    },
+    {
+      "symbol": "XRP",
+      "units": 78950.36660483932,
+      "lastPrice": 1.41995
+    },
+    {
+      "symbol": "SOL",
+      "units": 736.2910072800812,
+      "lastPrice": 103.86970019959631
+    },
+    {
+      "symbol": "TRX",
+      "units": 119401.23066642351,
+      "lastPrice": 0.3344005505938382
+    },
+    {
+      "symbol": "HYPE",
+      "units": 280.09991276521873,
+      "lastPrice": 85.775
+    },
+    {
+      "symbol": "ZEC",
+      "units": 20.970387310572768,
+      "lastPrice": 1031.21
+    },
+    {
+      "symbol": "DOGE",
+      "units": 205540.7300014882,
+      "lastPrice": 0.089149
+    },
+    {
+      "symbol": "XMR",
+      "units": 23.60989877821261,
+      "lastPrice": 541.98
+    },
+    {
+      "symbol": "LINK",
+      "units": 940.1454510682703,
+      "lastPrice": 12.1018
+    },
+    {
+      "symbol": "ADA",
+      "units": 48007.41610403119,
+      "lastPrice": 0.2187251640160846
+    },
+    {
+      "symbol": "XLM",
+      "units": 43767.682817134286,
+      "lastPrice": 0.1847519622874069
+    },
+    {
+      "symbol": "BCH",
+      "units": 25.258860873089162,
+      "lastPrice": 255.45
+    },
+    {
+      "symbol": "LTC",
+      "units": 96.29333984660674,
+      "lastPrice": 54.7115
+    },
+    {
+      "symbol": "UNI",
+      "units": 785.1600567811907,
+      "lastPrice": 6.659665
+    },
+    {
+      "symbol": "GRAM",
+      "units": 3502.9244429162436,
+      "lastPrice": 1.4228562467556447
+    },
+    {
+      "symbol": "HBAR",
+      "units": 55116.579423287374,
+      "lastPrice": 0.080716
+    },
+    {
+      "symbol": "SUI",
+      "units": 5157.873635434771,
+      "lastPrice": 0.8013870000000001
+    },
+    {
+      "symbol": "SHIB",
+      "units": 741312093.0288931,
+      "lastPrice": 0.000005493275689124336
+    }
+  ],
+  "divisor": 1000.0000000000001,
+  "methodologyHash": "f1aeadd8a1d9bbcf6d7dad1a0cbfbf967361da33e56be2390c98c3323804b3e0"
+}

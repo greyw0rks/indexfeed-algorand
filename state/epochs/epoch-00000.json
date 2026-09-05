@@ -1,0 +1,99 @@
+{
+  "index": "IFX20",
+  "epoch": 0,
+  "publishedAt": "2026-09-05T17:18:03.215Z",
+  "value": "10000000000",
+  "level": "1000.0000000",
+  "methodologyVersion": "1.2.0",
+  "methodologyHash": "f1aeadd8a1d9bbcf6d7dad1a0cbfbf967361da33e56be2390c98c3323804b3e0",
+  "constituents": [
+    {
+      "symbol": "BTC",
+      "weightBps": 2500
+    },
+    {
+      "symbol": "ETH",
+      "weightBps": 2500
+    },
+    {
+      "symbol": "BNB",
+      "weightBps": 1302
+    },
+    {
+      "symbol": "XRP",
+      "weightBps": 1121
+    },
+    {
+      "symbol": "SOL",
+      "weightBps": 765
+    },
+    {
+      "symbol": "TRX",
+      "weightBps": 399
+    },
+    {
+      "symbol": "HYPE",
+      "weightBps": 240
+    },
+    {
+      "symbol": "ZEC",
+      "weightBps": 216
+    },
+    {
+      "symbol": "DOGE",
+      "weightBps": 183
+    },
+    {
+      "symbol": "XMR",
+      "weightBps": 128
+    },
+    {
+      "symbol": "LINK",
+      "weightBps": 114
+    },
+    {
+      "symbol": "ADA",
+      "weightBps": 105
+    },
+    {
+      "symbol": "XLM",
+      "weightBps": 81
+    },
+    {
+      "symbol": "BCH",
+      "weightBps": 65
+    },
+    {
+      "symbol": "LTC",
+      "weightBps": 53
+    },
+    {
+      "symbol": "UNI",
+      "weightBps": 52
+    },
+    {
+      "symbol": "GRAM",
+      "weightBps": 50
+    },
+    {
+      "symbol": "HBAR",
+      "weightBps": 44
+    },
+    {
+      "symbol": "SUI",
+      "weightBps": 41
+    },
+    {
+      "symbol": "SHIB",
+      "weightBps": 41
+    }
+  ],
+  "universeSize": 236,
+  "candidatesScreened": 236,
+  "excludedCount": 216,
+  "attestation": {
+    "alg": "ed25519-sha256",
+    "digest": "656f07859c5b28debef2ead3de38952826f05c5b3d1c2fce516526649b0a387d",
+    "signature": "wsSh7EHWnUknaTYjDbZsof71b5Q9vO68sKN-e4DtexRWvVnBh8Zxl-Y-hVzNHHyHxgQz9x95_TxVCQEhI2qYCw"
+  }
+}
