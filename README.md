@@ -32,8 +32,17 @@ Built for the [Global x402 Challenge](https://algorand.co/blog/the-x402-global-c
 
 This is a sibling of, not a fork of, the Stellar/Soroban
 [IndexFeed](https://github.com/greyw0rks/indexfeed). One chain, one payment rail,
-one use case. The index engine is shared in substance — same methodology, same
-hash — but nothing here knows about Soroban and nothing there knows about Algorand.
+one use case, and nothing here knows about Soroban.
+
+The index engine started as the same rulebook, hash for hash, and it no longer is:
+this edition runs methodology **v1.2.0** (`f1aeadd8a1d9…`) against the Soroban
+edition's v1.1.0 (`65a4bcc8943d…`). The difference is one rule. Classifying a
+stablecoin from 24h and 7d volatility alone cannot tell a peg from a quiet week, and
+on 2026-09-05 it did not: ETH moved 0.42% and 0.40% over those two windows and was
+excluded as a stablecoin, which would have published a top-20 crypto index with no
+ETH in it. v1.2.0 adds a 30-day veto — the same day, stables sat at 0.1% while ETH
+had moved 28.5%. The hash moving is the mechanism working; the rulebook changed, so
+the identifier for the rulebook had to change with it.
 
 ## Routes
 
@@ -54,17 +63,31 @@ Free, and deliberately so — a caller cannot decide to pay without them:
 
 ## Why the tick route is a tenth of the price
 
-The challenge ranks on sustained on-chain usage measured over an undisclosed window
-in October, and the live leaderboard shows what that actually rewards: the top
-merchant runs **one** endpoint with ~299k settlements, while a merchant with **593**
-endpoints sits sixth with 2% of that volume. Median merchant: 247 settlements.
-Breadth does not buy volume — a standing reason to poll does.
+The leaderboard number is **USDC settled to the endpoint** — volume, not call count —
+measured over an undisclosed window in October. Taken literally that argues for
+raising every price, since the same traffic then reports a bigger number.
 
-So `/v1/index/tick` exists as a distinct product, not a cheap alias. It is the
-basket marked to current prices, which genuinely changes between reads, and it is
-priced so that a caller polling it every few seconds is buying data rather than
-making a donation. The other seven routes are the credibility of the offering; the
-tick is the part an agent has a reason to call again in thirty seconds.
+This is priced the other way on purpose, for two reasons.
+
+The first is that volume is trivially manufacturable here and therefore weak
+evidence. The facilitator pays the Algorand transaction fee, so a loop that pays
+from a wallet we own to a wallet we own nets to zero cost and can print an arbitrary
+leaderboard figure. Ten finalists are chosen from submitted material *together with*
+leaderboard activity, by people who can read a payer address — so the number worth
+having is one that third parties produced, and the way to get that is to be worth
+polling.
+
+The second is what the live field actually shows. Filtering `/discovery/merchants`
+to Algorand MainNet: the top merchant runs **one** endpoint with ~299k settlements,
+while a merchant with **593** endpoints sits sixth on 2% of that volume. Median
+merchant: 247 settlements. Breadth does not buy usage — a standing reason to poll
+does.
+
+So `/v1/index/tick` is a distinct product rather than a cheap alias for `latest`. It
+is the basket marked to current prices, so it genuinely changes between reads, and
+at $0.001 an agent polling it every thirty seconds is buying data rather than making
+a donation. The other seven routes are the credibility of the offering; the tick is
+the part something has a reason to call again in thirty seconds.
 
 ## What makes the index checkable
 
@@ -84,15 +107,16 @@ wrong in the same direction.
 Two independent digests ship with every epoch. `methodologyHash` covers the
 rulebook, so a consumer can tell whether two epochs were computed under the same
 rules. `attestation.digest` covers the epoch payload, signed Ed25519 by a key that
-exists only to attest and cannot move funds. Verify by deleting the `attestation`
-block and re-canonicalizing.
+exists only to attest and cannot move funds. `GET /` publishes that key under
+`attestation.publicKey` alongside the recipe: delete the `attestation` block,
+re-canonicalize with keys sorted, sha256, then check the signature over the digest.
 
 **Be precise about the guarantee.** The Soroban edition writes epochs to a
 contract, so a reader trusts no one. Here `epochStore.append` reproduces the
 contract's invariant — epoch N is accepted only when N equals head + 1, never
 overwritten — but it is enforced by this server, not by a chain. The signature
-narrows the gap; it does not close it. `/` reports `signed: false` when no key is
-configured rather than implying otherwise.
+narrows the gap; it does not close it. With no key loaded, `/` reports
+`attestation.signed: false` and drops the public key rather than implying otherwise.
 
 ## Getting it running
 
@@ -167,10 +191,10 @@ resulting type mismatch with `as unknown as ResourceServerExtension`.
 
 **First-party traffic is first-party.** `npm run poll` settles real USDC on MainNet,
 but from a wallet we control to a wallet we control, with the facilitator absorbing
-the fee — so it costs float and nothing else. Whether that counts the same as
-outside demand is the organizers' call. A leaderboard position built on it is
-fragile in a way one built on third-party callers is not, so treat the poller as the
-reference consumer and the demo, and go find real callers.
+the fee — so it costs float and nothing else. That is exactly why it is treated as
+the reference consumer and the demo rather than as the strategy: a leaderboard
+position built on it is a number we chose, and it is fragile in a way one built on
+third-party callers is not.
 
 **The poller spends real money.** At $0.001 a tick, one call every five seconds is
 about $17/day. `MAX_SPEND_USDC` is checked before every request, because x402
@@ -181,6 +205,38 @@ The same reasoning drives the freshness gate: the payment settles before the han
 runs, so anything that could refuse a request has to refuse it while the request is
 still free. `/v1/index/tick` returns an unpaid 503 when the price snapshot is stale
 rather than selling a level the caller has no way to identify as out of date.
+
+## Deploying
+
+`railway.json` ships the service config; deploy from the repo root, because the API
+workspace resolves `@indexfeed-algorand/engine` through the root `node_modules`.
+
+```bash
+railway up
+railway variables --set ALGORAND_NETWORK=mainnet \
+  --set X402_PAY_TO=<address> \
+  --set PUBLIC_BASE_URL=https://<service>.up.railway.app \
+  --set ATTEST_PRIVATE_KEY=<base64 from npm run attest-key>
+```
+
+Three parts of that config are load-bearing:
+
+**`PUBLIC_BASE_URL` is not optional in production.** Without it the middleware
+derives the resource URL from the request, which behind Railway's proxy is the
+internal host — so the Bazaar catalog lists an address no caller can reach while
+payments settle perfectly well.
+
+**The healthcheck points at `/`, not `/health`.** `/health` returns 503 when the
+price snapshot goes stale, which is correct for a caller deciding whether to spend
+and wrong for a liveness probe: an upstream feed having a bad ten minutes would
+otherwise put the container into a restart loop and take down the routes that were
+still fine. `/` answers "is the process up", which is what the platform is asking.
+
+**One replica.** Epochs are published by running the rebalancer locally and
+committing `state/`, so replicas would be read-only and identical — but nothing in
+the epoch store enforces a single writer, and the divisor that makes epoch N+1
+continuous with epoch N lives in that same directory. Scaling out is a schema
+change, not a slider.
 
 ## Layout
 
