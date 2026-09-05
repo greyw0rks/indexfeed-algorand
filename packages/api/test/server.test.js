@@ -13,7 +13,7 @@ import assert from "node:assert/strict";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { attest, epochStore, stateStore } from "@indexfeed-algorand/engine";
+import { attest, createAttestor, epochStore, generateAttestationKey, stateStore, verifyAttestation } from "@indexfeed-algorand/engine";
 import { loadApiConfig } from "../src/config.js";
 import { createApp } from "../src/server.js";
 
@@ -133,7 +133,7 @@ describe("IndexFeed API", () => {
     });
 
     market = fakeMarket();
-    app = createApp(config, { market, facilitatorClient: fakeFacilitator(config.caip2) });
+    app = createApp(config, { market, facilitatorClient: fakeFacilitator(config.caip2), attestor: null });
     server = app.listen(0);
     await new Promise((resolve) => server.once("listening", resolve));
     origin = `http://127.0.0.1:${server.address().port}`;
@@ -238,8 +238,97 @@ describe("IndexFeed API", () => {
     }
   });
 
+  it("admits it is unsigned when no attestation key is loaded", async () => {
+    const res = await fetch(`${origin}/`);
+    const body = await res.json();
+    // The false case is published too. Omitting the block when unsigned would
+    // read as an older service rather than an unsigned one, and a consumer
+    // deciding whether to trust the digest needs the difference stated.
+    assert.equal(body.attestation.signed, false);
+    assert.equal(body.attestation.algorithm, "sha256");
+    assert.equal(body.attestation.publicKey, null);
+  });
+
   it("404s an unknown route without demanding payment for it", async () => {
     const res = await fetch(`${origin}/v1/nope`);
     assert.equal(res.status, 404);
+  });
+});
+
+/**
+ * The advertised key has to be the key that signed.
+ *
+ * Getting this wrong produces a service that looks more trustworthy than the
+ * unsigned one while being strictly less useful: every signature fails to verify,
+ * and a consumer cannot tell whether the data was tampered with or the key is
+ * simply the wrong one.
+ */
+describe("attestation key publication", () => {
+  let dir;
+  let app;
+  let server;
+  let origin;
+  let attestor;
+
+  before(async () => {
+    dir = await mkdtemp(join(tmpdir(), "indexfeed-attest-"));
+    const config = loadApiConfig({ X402_PAY_TO: PAY_TO, ALGORAND_NETWORK: "testnet", STATE_DIR: dir, PORT: "0" });
+    const { privateKeyPem } = generateAttestationKey();
+    attestor = createAttestor(privateKeyPem);
+
+    await epochStore(dir).append(
+      attest(
+        {
+          index: "IFX20",
+          epoch: 0,
+          publishedAt: new Date().toISOString(),
+          value: "10000000000",
+          level: "1000.0000000",
+          methodologyHash: "deadbeef",
+          constituents: [{ symbol: "BTC", weightBps: 10000 }],
+        },
+        attestor,
+      ),
+    );
+
+    app = createApp(config, {
+      market: fakeMarket(),
+      facilitatorClient: fakeFacilitator(config.caip2),
+      attestor,
+    });
+    server = app.listen(0);
+    await new Promise((resolve) => server.once("listening", resolve));
+    origin = `http://127.0.0.1:${server.address().port}`;
+  });
+
+  after(async () => {
+    app.stop();
+    await new Promise((resolve) => server.close(resolve));
+    await rm(dir, { recursive: true, force: true });
+  });
+
+  it("publishes a key that verifies the epoch it signed", async () => {
+    const body = await (await fetch(`${origin}/`)).json();
+    assert.equal(body.attestation.signed, true);
+    assert.equal(body.attestation.algorithm, "ed25519-sha256");
+    assert.match(body.attestation.publicKey, /^-----BEGIN PUBLIC KEY-----/);
+
+    // Verify with the advertised key only — never with `attestor.publicKeyPem`,
+    // or the assertion would pass even if `/` published somebody else's key.
+    const record = await epochStore(dir).at(0);
+    assert.ok(
+      verifyAttestation({
+        digest: record.attestation.digest,
+        signature: record.attestation.signature,
+        publicKeyPem: body.attestation.publicKey,
+      }),
+      "the published key must verify the published signature",
+    );
+  });
+
+  it("documents verification in llms.txt with the key inline", async () => {
+    const text = await (await fetch(`${origin}/llms.txt`)).text();
+    assert.match(text, /BEGIN PUBLIC KEY/);
+    assert.match(text, /cannot move funds/);
   });
 });

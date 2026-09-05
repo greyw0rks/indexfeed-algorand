@@ -34,8 +34,18 @@
  * surprise.
  */
 import { declareDiscoveryExtension, validateDiscoveryExtension } from "@x402/extensions/bazaar";
+import { methodologyHash } from "@indexfeed-algorand/engine";
 
 const SERVICE_NAME = "IndexFeed";
+
+/**
+ * Short methodology hash for the advertised examples.
+ *
+ * Derived rather than pasted. These examples are the only thing a paying agent
+ * can inspect before spending, and a literal went stale the moment the rulebook
+ * changed — the catalog then advertised a hash no epoch would ever carry.
+ */
+const HASH_PREVIEW = `${methodologyHash().slice(0, 12)}…`;
 const MIME = "application/json";
 
 const str = (properties, required) => ({
@@ -84,7 +94,7 @@ export function buildRoutes(config) {
             level: 1002.4471903,
             asOf: "2026-09-03T08:14:02.118Z",
             priceAgeSeconds: 6.4,
-            methodologyHash: "65a4bcc8943d…",
+            methodologyHash: HASH_PREVIEW,
             constituents: [{ symbol: "BTC", price: 111842.5, weightBps: 2500 }],
             stale: [],
           },
@@ -105,7 +115,7 @@ export function buildRoutes(config) {
             publishedAt: "2026-09-03T08:00:00.000Z",
             value: "10024471903",
             level: "1002.4471903",
-            methodologyHash: "65a4bcc8943d…",
+            methodologyHash: HASH_PREVIEW,
             constituents: [{ symbol: "BTC", weightBps: 2500 }],
             attestation: { alg: "ed25519-sha256", digest: "9f2c…", signature: "MEUCIQ…" },
           },
@@ -125,7 +135,7 @@ export function buildRoutes(config) {
             epoch: 0,
             targetSize: 20,
             concentrationCapBps: 2500,
-            methodologyHash: "65a4bcc8943d…",
+            methodologyHash: HASH_PREVIEW,
             constituents: [{ symbol: "BTC", weightBps: 2500 }],
           },
         },

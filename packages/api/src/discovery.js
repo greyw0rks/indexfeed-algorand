@@ -16,7 +16,7 @@
 import { METHODOLOGY, methodologyHash } from "@indexfeed-algorand/engine";
 import { describeService } from "./routes.js";
 
-export function registerFreeRoutes(app, { config, market, index, epochs }) {
+export function registerFreeRoutes(app, { config, market, index, epochs, attestor = null }) {
   const service = () => ({
     service: "IndexFeed",
     edition: "Algorand",
@@ -39,6 +39,22 @@ export function registerFreeRoutes(app, { config, market, index, epochs }) {
       targetSize: METHODOLOGY.targetSize,
       cadenceDays: METHODOLOGY.cadenceDays,
       concentrationCapBps: METHODOLOGY.concentrationCapBps,
+    },
+    /**
+     * Whether epochs are signed, and the key to check them with.
+     *
+     * Published unconditionally, including the `false` case. A signature nobody
+     * can verify is decoration, so withholding the public key would leave the
+     * attestation unfalsifiable — and claiming `signed` while no key is loaded
+     * would be worse: the consumer would attribute a guarantee to a digest that
+     * only proves the record has not been edited.
+     */
+    attestation: {
+      signed: Boolean(attestor),
+      algorithm: attestor ? "ed25519-sha256" : "sha256",
+      publicKey: attestor?.publicKeyPem ?? null,
+      verify:
+        "Remove the `attestation` object, canonicalize the remainder with keys sorted at every level, sha256 it: that hex string is `attestation.digest`. Verify `attestation.signature` (base64url Ed25519) over the digest string as UTF-8 bytes, using `attestation.publicKey`.",
     },
     routes: describeService(config),
   });
@@ -81,7 +97,7 @@ export function registerFreeRoutes(app, { config, market, index, epochs }) {
 
   // llms.txt, per the llmstxt.org convention the enrichment engine probes for.
   app.get("/llms.txt", (_req, res) => {
-    res.type("text/plain").send(llmsTxt(config));
+    res.type("text/plain").send(llmsTxt(config, attestor));
   });
 
   app.get("/robots.txt", (_req, res) => {
@@ -89,7 +105,7 @@ export function registerFreeRoutes(app, { config, market, index, epochs }) {
   });
 }
 
-function llmsTxt(config) {
+function llmsTxt(config, attestor = null) {
   const rows = describeService(config)
     .map(({ route, price, description }) => `- \`${route}\` — ${price} — ${description}`)
     .join("\n");
@@ -127,5 +143,24 @@ Prices are reconciled across four independent feeds — two exchanges and two
 aggregators — by median, discarding any source more than
 ${METHODOLOGY.pricing.maxDeviationBps / 100}% from it. An asset with fewer than
 ${METHODOLOGY.pricing.minSources} agreeing sources is not priced rather than priced badly.
+
+## Verifying an epoch
+
+${
+  attestor
+    ? `Every epoch is signed Ed25519 over its own sha256 digest. Remove the
+\`attestation\` object, canonicalize the remainder with keys sorted at every level,
+and sha256 it to reproduce \`attestation.digest\`; then check
+\`attestation.signature\` (base64url) against that hex string with the key below.
+It signs epochs and cannot move funds — the payout account is a different key.
+
+\`\`\`
+${attestor.publicKeyPem.trim()}
+\`\`\``
+    : `No attestation key is loaded, so epochs carry a sha256 digest but no
+signature: the digest proves the record has not been edited since publication, and
+proves nothing about who produced it. \`GET /\` reports this as
+\`attestation.signed: false\`.`
+}
 `;
 }

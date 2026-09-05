@@ -115,8 +115,12 @@ async function main() {
 function printAttestKey() {
   const { privateKeyPem, publicKeyPem } = generateAttestationKey();
   console.log("# Attestation keypair. The private key signs epoch digests and CANNOT move funds.");
-  console.log("# Store the private key as ATTEST_PRIVATE_KEY (base64 form avoids newline mangling).");
-  console.log(`\nATTEST_PRIVATE_KEY_BASE64=${Buffer.from(privateKeyPem).toString("base64")}`);
+  console.log("# Paste the line below into .env verbatim. The value is base64-wrapped PEM, which");
+  console.log("# survives the newline flattening that most secret stores apply to a raw PEM.");
+  // The variable name has to be exactly the one config.js reads. Printing a
+  // suffixed name (…_BASE64) would produce a key the loader never looks at, and
+  // the failure is silent: epochs publish unsigned behind a single warning line.
+  console.log(`\nATTEST_PRIVATE_KEY=${Buffer.from(privateKeyPem).toString("base64")}`);
   console.log(`\n${publicKeyPem}`);
 }
 

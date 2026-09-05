@@ -43,7 +43,11 @@ export function createApp(config, deps = {}) {
   const engineConfig = loadConfig();
   const state = deps.state ?? stateStore(config.stateDir);
   const epochs = deps.epochs ?? epochStore(config.stateDir);
-  const attestor = deps.attestor ?? createAttestor(engineConfig.attestPrivateKey);
+  // `in` rather than `??` so a caller can force the unsigned path with
+  // `attestor: null`. With `??`, injecting null would silently fall through to
+  // the ambient key and the unsigned branch would be untestable wherever a
+  // developer happens to have ATTEST_PRIVATE_KEY in .env.
+  const attestor = "attestor" in deps ? deps.attestor : createAttestor(engineConfig.attestPrivateKey);
 
   /**
    * Constituent symbols of the head epoch, cached so the price refresh does not
@@ -78,7 +82,7 @@ export function createApp(config, deps = {}) {
 
   const routes = buildRoutes(config);
   assertRoutesDiscoverable(routes);
-  registerFreeRoutes(app, { config, market, index, epochs, routes });
+  registerFreeRoutes(app, { config, market, index, epochs, routes, attestor });
 
   // Ahead of the payment middleware: x402 settles before a handler runs, so any
   // check that can refuse the request has to happen while the request is still
